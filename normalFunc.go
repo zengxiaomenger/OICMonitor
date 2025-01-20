@@ -83,3 +83,8 @@ func containsAnswer(answer []string, ip string) bool {
 	}
 	return false
 }
+
+// 转成redis键格式
+func addPrefix(metric string) string {
+	return "_metrics:" + metric
+}

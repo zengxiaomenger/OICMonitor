@@ -7,10 +7,6 @@ import (
 	"github.com/go-redis/redis"
 )
 
-func addPrefix(metric string) string { //转成redis格式
-	return "_metrics:" + metric
-}
-
 func setValue(key, value string) error {
 	err := rdb.Set(key, value, 0).Err() // v7版本的Set方法不需要context
 	if err != nil {
@@ -22,12 +18,11 @@ func setValue(key, value string) error {
 
 func getValue(key string) (string, error) {
 	val, err := rdb.Get(key).Result() // v7版本的Get方法不需要context
-	if err == redis.Nil {
-		log.Println("Key does not exist")
-	} else if err != nil {
+	if err != nil {
 		log.Printf("Error getting key: %v", err)
+		return "", err
 	}
-	return val, nil
+	return val, err
 }
 
 func modifyValue(key, newValue string) error {

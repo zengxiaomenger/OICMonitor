@@ -3,47 +3,16 @@ package main
 import (
 	"fmt"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 )
 
-func updateQueriesTotal() error {
-	dnsQueriesTotal.Inc()
-	strKey := addPrefix("dns_queries_total")
-	strVal, err1 := getValue(strKey)
-	if err1 != nil {
-		return err1
-	}
-	intVal, err2 := strconv.Atoi(strVal)
-	if err2 != nil {
-		return err2
-	}
-	intVal++
-	strVal1 := strconv.Itoa(intVal)
-	err3 := setValue(strKey, strVal1)
-	if err3 != nil {
-		return err3
-	}
-	return nil
+func updateQueriesTotal() {
+	// dnsQueriesTotal.Inc()
+	updateCounter(1)
 }
 func updateResponsesTotal() error {
 	dnsResponsesTotal.Inc()
-	strKey := addPrefix("dns_responses_total")
-	strVal, err1 := getValue(strKey)
-	if err1 != nil {
-		return err1
-	}
-	intVal, err2 := strconv.Atoi(strVal)
-	if err2 != nil {
-		return err2
-	}
-	intVal++
-	strVal1 := strconv.Itoa(intVal)
-	err3 := setValue(strKey, strVal1)
-	if err3 != nil {
-		return err3
-	}
 	return nil
 }
 
