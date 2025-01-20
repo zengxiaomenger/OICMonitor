@@ -153,7 +153,7 @@ func main() {
 	// 2 Start Prometheus HTTP server
 	go func() {
 		http.Handle("/metrics", promhttp.Handler())
-		log.Fatal(http.ListenAndServe(":9154", nil))
+		log.Fatal(http.ListenAndServe(":9155", nil))
 	}()
 
 	// 3 connect mysql
