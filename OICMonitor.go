@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"time"
+	"strconv"
 
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/go-redis/redis"
@@ -27,7 +27,14 @@ type DNSMessage struct {
 }
 
 func registerPrometheusMetrics() {
-	prometheus.MustRegister(dnsQueriesTotal, dnsResponsesTotal, dnsTopSourceIPs, dnsSourceIPsCount, dataWithAnswerCount, queryNameCount, remoteAddressCount)
+	prometheus.MustRegister(
+		dnsQueriesTotal,
+		dnsResponsesTotal,
+		dnsUniqueIPCount,
+		dnsModifiedResponseCount,
+		dnsModifiedQnameInfo,
+		dnsModifiedQnameIPCount,
+	)
 }
 
 func connectMysql() {
@@ -58,7 +65,30 @@ func connectRedis() {
 	fmt.Println("Redis connected, Ping response:", pong)
 }
 
-func initializeRedis() { //使用redis更新metrics
+func initializeMetrics() { // 使用redis更新metrics
+	// 初始化dns_queries_total
+	strKey := addPrefix("dns_queries_total")
+	strVal, err1 := getValue(strKey)
+	if err1 != nil {
+		log.Println("dns_queries_total does not exist in redis")
+	}
+	intVal, err2 := strconv.Atoi(strVal)
+	if err2 != nil {
+		log.Println("convert dns_queries_total to INT fails")
+	}
+	dnsQueriesTotal.Add(float64(intVal))
+
+	// 初始化dns_queries_total
+	strKey1 := addPrefix("dns_queries_total")
+	strVal1, err3 := getValue(strKey1)
+	if err3 != nil {
+		log.Println("dns_queries_total does not exist in redis")
+	}
+	intVal1, err4 := strconv.Atoi(strVal1)
+	if err4 != nil {
+		log.Println("convert dns_queries_total to INT fails")
+	}
+	dnsQueriesTotal.Add(float64(intVal1))
 
 }
 
@@ -105,14 +135,14 @@ func consumeKafka() {
 // RecordMetrics updates Prometheus metrics based on a DNS log message
 func RecordMetrics(message DNSMessage, topic string) {
 	if topic == "DNS_LOG_QUERY" {
-		dnsQueriesTotal.WithLabelValues("minute").Inc()
+		updateQueriesTotal()
 		updateUniqueIPs(message.RemoteAddress)
 	} else if topic == "DNS_LOG" {
-		dnsResponsesTotal.WithLabelValues("minute").Inc()
+		updateResponsesTotal()
 		if containsAnswer(message.Answer, "10.28.8.78") {
-			dataWithAnswerCount.Inc()
+			updateModifiedResponseCount()
 			updateQueryNameCount(message.QueryName)
-			updateRemoteAddressCount(message.RemoteAddress)
+			updateModifiedQnameIPCount(message.RemoteAddress)
 		}
 	}
 }
@@ -126,14 +156,6 @@ func main() {
 		log.Fatal(http.ListenAndServe(":9154", nil))
 	}()
 
-	// Periodically update top source IPs
-	go func() {
-		ticker := time.NewTicker(time.Minute)
-		for range ticker.C {
-			UpdateTopSourceIPs()
-		}
-	}()
-
 	// 3 connect mysql
 	connectMysql()
 	defer db.Close()
@@ -141,8 +163,8 @@ func main() {
 	// 4 connect redis
 	connectRedis()
 
-	// 5 initialize redis
-	initializeRedis()
+	// 5 initialize metrics using redis
+	initializeMetrics()
 
 	// 6 connect kafka
 	connectKafka()

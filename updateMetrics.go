@@ -3,44 +3,82 @@ package main
 import (
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
 
+func updateQueriesTotal() error {
+	dnsQueriesTotal.Inc()
+	strKey := addPrefix("dns_queries_total")
+	strVal, err1 := getValue(strKey)
+	if err1 != nil {
+		return err1
+	}
+	intVal, err2 := strconv.Atoi(strVal)
+	if err2 != nil {
+		return err2
+	}
+	intVal++
+	strVal1 := strconv.Itoa(intVal)
+	err3 := setValue(strKey, strVal1)
+	if err3 != nil {
+		return err3
+	}
+	return nil
+}
+func updateResponsesTotal() error {
+	dnsResponsesTotal.Inc()
+	strKey := addPrefix("dns_responses_total")
+	strVal, err1 := getValue(strKey)
+	if err1 != nil {
+		return err1
+	}
+	intVal, err2 := strconv.Atoi(strVal)
+	if err2 != nil {
+		return err2
+	}
+	intVal++
+	strVal1 := strconv.Itoa(intVal)
+	err3 := setValue(strKey, strVal1)
+	if err3 != nil {
+		return err3
+	}
+	return nil
+}
+
 // updateUniqueIPs updates the unique IPs count for the current minute
 func updateUniqueIPs(ip string) {
 	currentMinute := time.Now().Unix() / 60
-	minuteUniqueIPs.Lock.Lock()
-	defer minuteUniqueIPs.Lock.Unlock()
-	if _, exists := minuteUniqueIPs.Data[currentMinute]; !exists {
-		minuteUniqueIPs.Data[currentMinute] = make(map[string]bool)
+	dicMinuteUniqueIPs.Lock.Lock()
+	defer dicMinuteUniqueIPs.Lock.Unlock()
+	if _, exists := dicMinuteUniqueIPs.Data[currentMinute]; !exists {
+		dicMinuteUniqueIPs.Data[currentMinute] = make(map[string]bool)
 	}
-	minuteUniqueIPs.Data[currentMinute][ip] = true
-	dnsSourceIPsCount.Set(float64(len(minuteUniqueIPs.Data[currentMinute])))
+	dicMinuteUniqueIPs.Data[currentMinute][ip] = true
+	dnsUniqueIPCount.Set(float64(len(dicMinuteUniqueIPs.Data[currentMinute])))
 
 	// Cleanup old data
-	for minute := range minuteUniqueIPs.Data {
+	for minute := range dicMinuteUniqueIPs.Data {
 		if minute < currentMinute-1 {
-			delete(minuteUniqueIPs.Data, minute)
+			delete(dicMinuteUniqueIPs.Data, minute)
 		}
 	}
+}
+func updateModifiedResponseCount() {
+	dnsModifiedResponseCount.Inc()
 }
 
 // updateQueryNameCount updates the QueryName count for DNS responses with Answer containing the target IP
 func updateQueryNameCount(queryName string) {
-	queryNameResponseCount.Lock.Lock()
-	defer queryNameResponseCount.Lock.Unlock()
-	queryNameMainDomain.Lock.Lock()
-	defer queryNameMainDomain.Lock.Unlock()
-	queryNameResponseCount.count[queryName]++
+	dicModifiedQnameMain.Lock.Lock()
+	defer dicModifiedQnameMain.Lock.Unlock()
 
-	if queryNameResponseCount.count[queryName]%100 == 1 { //101时，更新main_domain列表
-		// 删除原有键
-		if _, exists := queryNameMainDomain.Data[queryName]; exists {
-			delete(queryNameMainDomain.Data, queryName)
-		}
+	// 不存在就导入新键
+	if _, exists := dicModifiedQnameMain.Data[queryName]; !exists {
+		// delete(dicModifiedQnameMain.Data, queryName)
 		// 生成新键
-		queryNameMainDomain.Data[queryName] = make(map[string]bool)
+		dicModifiedQnameMain.Data[queryName] = make(map[string]bool)
 		// 连接数据库读入主域名们
 		mainDomains, err := getMainDomain(queryName)
 		// fmt.Println(mainDomains)
@@ -51,14 +89,15 @@ func updateQueryNameCount(queryName string) {
 		}
 		for i := 0; i < len(mainDomains); i++ {
 			mainDomain := mainDomains[i]
-			queryNameMainDomain.Data[queryName][mainDomain] = true
+			dicModifiedQnameMain.Data[queryName][mainDomain] = true
 		}
 	}
+
 	strMainDomains := ""
-	keys := make([]string, 0, len(queryNameMainDomain.Data[queryName]))
+	keys := make([]string, 0, len(dicModifiedQnameMain.Data[queryName]))
 
 	// 收集所有键
-	for key := range queryNameMainDomain.Data[queryName] {
+	for key := range dicModifiedQnameMain.Data[queryName] {
 		keys = append(keys, key)
 	}
 	// 对键进行排序
@@ -69,36 +108,57 @@ func updateQueryNameCount(queryName string) {
 	if strMainDomains == "" {
 		strMainDomains = "null"
 	}
-	queryNameCount.WithLabelValues(queryName, strMainDomains).Set(float64(queryNameResponseCount.count[queryName]))
+	dnsModifiedQnameInfo.WithLabelValues(queryName, strMainDomains).Inc()
 }
 
-// updateRemoteAddressCount updates the RemoteAddress count for DNS responses with Answer containing the target IP
-func updateRemoteAddressCount(remoteAddress string) {
-	remoteAddressResponseCount.Lock.Lock()
-	defer remoteAddressResponseCount.Lock.Unlock()
-	remoteAddressResponseCount.count[remoteAddress]++
-	remoteAddressCount.WithLabelValues(remoteAddress).Set(float64(remoteAddressResponseCount.count[remoteAddress]))
-}
+// gauge版
+// func updateQueryNameCount(queryName string) {
+// 	dicModifiedQnameCount.Lock.Lock()
+// 	defer dicModifiedQnameCount.Lock.Unlock()
+// 	dicModifiedQnameMain.Lock.Lock()
+// 	defer dicModifiedQnameMain.Lock.Unlock()
 
-// UpdateTopSourceIPs calculates and updates the top 10 source IPs by query volume
-func UpdateTopSourceIPs() {
-	sourceIPCount.RLock()
-	defer sourceIPCount.RUnlock()
-	type ipCount struct {
-		IP    string
-		Count int
-	}
-	topIPs := make([]ipCount, 0, len(sourceIPCount.count))
-	for ip, count := range sourceIPCount.count {
-		topIPs = append(topIPs, ipCount{IP: ip, Count: count})
-	}
+// 	dicModifiedQnameCount.count[queryName]++
 
-	sort.Slice(topIPs, func(i, j int) bool { return topIPs[i].Count > topIPs[j].Count })
-	if len(topIPs) > 10 {
-		topIPs = topIPs[:10]
-	}
-	dnsTopSourceIPs.Reset()
-	for _, top := range topIPs {
-		dnsTopSourceIPs.WithLabelValues(top.IP).Set(float64(top.Count))
-	}
+// 	if dicModifiedQnameCount.count[queryName]%100 == 1 { //101时，更新main_domain列表
+// 		// 删除原有键
+// 		if _, exists := dicModifiedQnameMain.Data[queryName]; exists {
+// 			delete(dicModifiedQnameMain.Data, queryName)
+// 		}
+// 		// 生成新键
+// 		dicModifiedQnameMain.Data[queryName] = make(map[string]bool)
+// 		// 连接数据库读入主域名们
+// 		mainDomains, err := getMainDomain(queryName)
+// 		// fmt.Println(mainDomains)
+// 		// 把主域名导入map去重
+// 		if err != nil {
+// 			fmt.Errorf("failed to scan result: %v", err)
+// 			return
+// 		}
+// 		for i := 0; i < len(mainDomains); i++ {
+// 			mainDomain := mainDomains[i]
+// 			dicModifiedQnameMain.Data[queryName][mainDomain] = true
+// 		}
+// 	}
+// 	strMainDomains := ""
+// 	keys := make([]string, 0, len(dicModifiedQnameMain.Data[queryName]))
+
+// 	// 收集所有键
+// 	for key := range dicModifiedQnameMain.Data[queryName] {
+// 		keys = append(keys, key)
+// 	}
+// 	// 对键进行排序
+// 	sort.Strings(keys)
+// 	// 拼接排序后的键
+// 	strMainDomains = strings.Join(keys, ",")
+// 	// 处理空值情况
+// 	if strMainDomains == "" {
+// 		strMainDomains = "null"
+// 	}
+// 	dnsModifiedQnameInfo.WithLabelValues(queryName, strMainDomains).Set(float64(dicModifiedQnameCount.count[queryName]))
+// }
+
+// updateModifiedQnameIPCount updates the RemoteAddress count for DNS responses with Answer containing the target IP
+func updateModifiedQnameIPCount(remoteAddress string) {
+	dnsModifiedQnameIPCount.WithLabelValues(remoteAddress).Inc()
 }
