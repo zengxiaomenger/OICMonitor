@@ -52,7 +52,7 @@ func updateQueryNameCount(qName string) {
 		}
 		dicModifiedQnameMain.Data[qName] = strMainDomains
 	}
-	add1CounterVec(&dnsModifiedQnameInfo, "dns_modified_qname_info", strMainDomains)
+	add1CounterVec(&dnsModifiedQnameInfo, "dns_modified_qname_info", qName, strMainDomains)
 }
 
 // gauge版
