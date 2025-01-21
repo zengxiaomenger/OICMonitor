@@ -8,10 +8,10 @@ import (
 )
 
 func updateQueriesTotal() {
-	addCounter(&dnsQueriesTotal, "dns_queries_total")
+	add1Counter(&dnsQueriesTotal, "dns_queries_total")
 }
 func updateResponsesTotal() {
-	addCounter(&dnsResponsesTotal, "dns_responses_total")
+	add1Counter(&dnsResponsesTotal, "dns_responses_total")
 }
 
 // updateUniqueIPs updates the unique IPs count for the current minute
@@ -33,7 +33,7 @@ func updateUniqueIPs(ip string) {
 	}
 }
 func updateModifiedResponseCount() {
-	dnsModifiedResponseCount.Inc()
+	add1Counter(&dnsModifiedResponseCount, "dns_modified_response_count")
 }
 
 // updateQueryNameCount updates the QueryName count for DNS responses with Answer containing the target IP

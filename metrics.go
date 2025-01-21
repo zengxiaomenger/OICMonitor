@@ -28,7 +28,7 @@ var (
 	)
 )
 var (
-	// 2 每分钟不同源IP数
+	// 2 每分钟不同源IP数 这个不需要存储，只要累积量存储即可
 	dnsUniqueIPCount = prometheus.NewGauge(
 		prometheus.GaugeOpts{
 			Name: "dns_unique_ip_count",

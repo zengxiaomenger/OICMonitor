@@ -67,7 +67,9 @@ func connectRedis() {
 func initializeMetrics() {
 	initializeCounter(&dnsQueriesTotal, "dns_queries_total")
 	initializeCounter(&dnsResponsesTotal, "dns_responses_total")
+	initializeCounter(&dnsModifiedResponseCount, "dns_modified_response_count")
 
+	initializeCounterVec(&dnsModifiedQnameIPCount, "dns_modified_qname_ip_count")
 }
 
 func connectKafka() {
