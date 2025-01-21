@@ -45,7 +45,8 @@ func updateQueryNameCount(qName string) {
 	if !ok {
 		// 若当前qName没有记录对应的主域名 需要查询主域名并建立映射
 		// 连接数据库读入去重排序字符串格式的主域名们
-		strMainDomains, err := getStrMainDomains(qName)
+		var err error
+		strMainDomains, err = getStrMainDomains(qName)
 		if err != nil {
 			fmt.Errorf("failed to scan result: %v", err)
 			return
