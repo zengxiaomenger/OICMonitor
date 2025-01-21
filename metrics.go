@@ -60,8 +60,8 @@ var (
 	)
 	dicModifiedQnameMain = struct {
 		Lock sync.Mutex
-		Data map[string]map[string]bool
-	}{Data: make(map[string]map[string]bool)}
+		Data map[string]string
+	}{Data: make(map[string]string)}
 	// Gauge版本。改成Counter
 	// dnsModifiedQnameInfo = prometheus.NewGaugeVec(
 	// 	prometheus.GaugeOpts{

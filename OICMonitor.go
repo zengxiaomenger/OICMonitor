@@ -69,6 +69,7 @@ func initializeMetrics() {
 	initializeCounter(&dnsResponsesTotal, "dns_responses_total")
 	initializeCounter(&dnsModifiedResponseCount, "dns_modified_response_count")
 
+	initializeCounterVec(&dnsModifiedQnameInfo, "dns_modified_qname_info")
 	initializeCounterVec(&dnsModifiedQnameIPCount, "dns_modified_qname_ip_count")
 }
 
