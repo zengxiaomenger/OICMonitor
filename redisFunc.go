@@ -108,7 +108,7 @@ func initializeCounterVec(counterVec **prometheus.CounterVec, redisKey string) {
 }
 
 // updateCounter updates the Prometheus counter and Redis value.
-func add1CounterVec(counterVec *prometheus.CounterVec, redisKey string, redisFields ...string) {
+func add1CounterVec(counterVec **prometheus.CounterVec, redisKey string, redisFields ...string) {
 	// 新增metrics
 	(*counterVec).WithLabelValues(redisFields...).Inc()
 

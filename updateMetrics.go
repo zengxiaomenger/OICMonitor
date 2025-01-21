@@ -127,5 +127,6 @@ func updateQueryNameCount(queryName string) {
 
 // updateModifiedQnameIPCount updates the RemoteAddress count for DNS responses with Answer containing the target IP
 func updateModifiedQnameIPCount(remoteAddress string) {
-	dnsModifiedQnameIPCount.WithLabelValues(remoteAddress).Inc()
+	// dnsModifiedQnameIPCount.WithLabelValues(remoteAddress).Inc()
+	add1CounterVec(&dnsModifiedQnameIPCount, "dns_modified_qname_ip_count", remoteAddress)
 }
