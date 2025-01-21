@@ -8,12 +8,10 @@ import (
 )
 
 func updateQueriesTotal() {
-	// dnsQueriesTotal.Inc()
-	updateCounter(1)
+	addCounter(&dnsQueriesTotal, "dns_queries_total")
 }
-func updateResponsesTotal() error {
-	dnsResponsesTotal.Inc()
-	return nil
+func updateResponsesTotal() {
+	addCounter(&dnsResponsesTotal, "dns_responses_total")
 }
 
 // updateUniqueIPs updates the unique IPs count for the current minute
