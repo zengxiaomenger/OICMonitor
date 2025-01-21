@@ -13,17 +13,17 @@ func getStrMainDomains(qName string) (string, error) {
 
 	// First query: exact match on domain
 	// 先查domain是这个值的
-	query := "SELECT main_domain FROM coredns_records WHERE domain=?"
+	query := "SELECT main_domain FROM coredns_records WHERE domain='?'"
 	rows, err := db.Query(query, qName)
 	if err != nil {
-		return "", fmt.Errorf("failed to query database: %v", err)
+		return "null1", fmt.Errorf("failed to query database: %v", err)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
 		var mainDomain string
 		if err := rows.Scan(&mainDomain); err != nil {
-			return "", fmt.Errorf("failed to scan result: %v", err)
+			return "null2", fmt.Errorf("failed to scan result: %v", err)
 		}
 		mainDomains = append(mainDomains, mainDomain)
 	}
@@ -38,17 +38,17 @@ func getStrMainDomains(qName string) (string, error) {
 	parts := strings.Split(qName, ".")
 	if len(parts) > 1 {
 		zone := parts[len(parts)-2] + "." + parts[len(parts)-1] + "."
-		query = "SELECT main_domain FROM coredns_records WHERE zone=?"
+		query = "SELECT main_domain FROM coredns_records WHERE zone='?'"
 		rows, err = db.Query(query, zone)
 		if err != nil {
-			return "", fmt.Errorf("failed to query database: %v", err)
+			return "null3", fmt.Errorf("failed to query database: %v", err)
 		}
 		defer rows.Close()
 
 		for rows.Next() {
 			var mainDomain string
 			if err := rows.Scan(&mainDomain); err != nil {
-				return "", fmt.Errorf("failed to scan result: %v", err)
+				return "null4", fmt.Errorf("failed to scan result: %v", err)
 			}
 			mainDomains = append(mainDomains, mainDomain)
 		}
